@@ -1,0 +1,49 @@
+);
+const app = express();
+
+// Set up the chatgpt library
+const chatgpt = require('chatgpt');
+const chatgptClient = new chatgpt.Client();
+
+// Set up the Amazon Alexa library
+const Alexa = require('alexa-sdk');
+
+// Use the Alexa library to handle incoming requests
+app.post('/alexa', function(req, res) {
+  // Create an Alexa object
+  const alexa = Alexa.handler(req.body, context);
+
+  // Register a handler for the "LaunchRequest" intent
+  alexa.registerHandler('LaunchRequest', function() {
+    // Use chatgpt to generate a response to the user's request
+    chatgptClient.ask('Hello, how can I help you?')
+      .then(function(response) {
+        // Use the Alexa library to generate speech and screen output
+        const speechOutput = response.data.replies[0];
+        this.response.speak(speechOutput).listen(speechOutput);
+        this.response.cardRenderer(response.data.replies[0]);
+        this.response.shouldEndSession(false);
+        this.emit(':responseReady');
+      })
+      .catch(function(error) {
+        // Handle any errors that occurred
+        console.error(error);
+        this.response.speak('Sorry, something went wrong. Please try again.');
+        this.emit(':responseReady');
+      });
+  });
+
+  // Register a handler for any other intents
+  alexa.registerHandlers(function() {
+    this.emit(':responseReady');
+  });
+
+  // Handle the incoming request
+  alexa.execute();
+});
+
+// Start the server
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, function() {
+  console.log(`Server listening on port ${PORT}`);
+});
